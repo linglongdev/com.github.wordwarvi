@@ -1,0 +1,63 @@
+version: "1"
+
+package:
+  id: com.github.wordwarvi
+  name: wordwarvi
+  version: 1.0.4.0
+  kind: app
+  description: |
+    Word War vi is a retro-styled side-scrolling shoot'em up arcade game.
+    You pilot your "vi"per craft through core memory, rescuing lost .swp
+    files, avoiding OS defenses, and wiping out those memory hogging emacs
+    processes.
+
+command:
+  - /opt/apps/com.github.wordwarvi/files/games/wordwarvi
+
+base: org.deepin.base/25.2.2
+
+sources:
+  - kind: archive
+    url: https://share.cicd.getdeepin.org/ziggy-pool/linyaps-apps-packaging-CI/25M8.top500-init.stage-1.sysRepo/wordwarvi_1.0.4.orig.tar.gz
+    digest: sha256:5500aa7f2c2b89ddf3d405a5fbf801b2a19ad60b1b83691cd894b7c12520b130
+    name: wordwarvi-1.0.4
+  - kind: archive
+    url: https://share.cicd.getdeepin.org/ziggy-pool/linyaps-apps-packaging-CI/25M8.top500-init.stage-1.sysRepo/wordwarvi_1.0.4-2.debian.tar.xz
+    digest: sha256:45fceabfe90cc4cd718955a3e5ad9edaa547f0bdf70e0399910edacfe1043574
+    name: debian
+
+build: |
+  set -e
+  cd /project/linglong/sources/wordwarvi-1.0.4
+
+  # Apply debian patches
+  if [ -d /project/linglong/sources/debian/patches ]; then
+    for p in $(cat /project/linglong/sources/debian/patches/series); do
+      patch -p1 -N -r /dev/null < /project/linglong/sources/debian/patches/$p || true
+    done
+  fi
+
+  # Build with audio support
+  make -j$(nproc) PREFIX=${PREFIX} WITHAUDIO=yes
+  make install PREFIX=${PREFIX} WITHAUDIO=yes
+
+  # Install desktop file and icon with sandbox-correct paths
+  install -d ${PREFIX}/share/applications
+  install -d ${PREFIX}/share/icons/hicolor/128x128/apps
+  printf '%s\n' "[Desktop Entry]" "Type=Application" "Name=Word War vi" "Comment=Side-scrolling shoot'em up arcade game" "Comment[es]=Juego de disparo continuo con desplazamiento lateral" "Icon=/opt/apps/com.github.wordwarvi/files/share/icons/hicolor/128x128/apps/wordwarvi_icon_128x128.png" "Exec=/opt/apps/com.github.wordwarvi/files/games/wordwarvi" "Categories=Game;ActionGame;ArcadeGame;" "Keywords=vector-graphics;hostages;rescue;editor-wars;" "Keywords[es]=vectorial;rehenes;rescate;guerras de editores;" > ${PREFIX}/share/applications/com.github.wordwarvi.desktop
+  install -m 644 icons/wordwarvi_icon_128x128.png ${PREFIX}/share/icons/hicolor/128x128/apps/wordwarvi_icon_128x128.png
+
+buildext:
+  apt:
+    build_depends:
+      - build-essential
+      - pkg-config
+      - libgtk2.0-dev
+      - libvorbis-dev
+      - portaudio19-dev
+    depends:
+      - libgtk2.0-0
+      - libglib2.0-0
+      - libvorbisfile3
+      - libvorbis0a
+      - libportaudio2
